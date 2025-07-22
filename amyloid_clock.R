@@ -101,7 +101,7 @@ summary(fit_SUVRrate)
 plot(fit_SUVRrate)
 # Calculate time intervals between SUVR#
 ##create a data frame with intervals from 0.62 to 1.11##
-SUVR_midpoint <- seq(from= 0.62,to=1.11,by=.0001)
+SUVR_midpoint <- seq(from= SUVR_MIN,to=SUVR_MAX,by=.0001)
 SUVR_midpoint <- SUVR_midpoint + 0.00005
 SUVR_midpoint <- as.data.frame(SUVR_midpoint)
 
@@ -114,7 +114,7 @@ SUVR_midpoint$TimeSum_i <- cumsum(SUVR_midpoint$Amyloid_TIME_INT_i) ###cumulativ
 SUVR_midpoint$Amyloid_time <- SUVR_midpoint$TimeSum_i - SUVR_midpoint$Time[SUVR_midpoint$SUVR_midpoint == SUVR_POSITIVE_THRESHOLD] # Calculate the time difference from the target SUVR for each observation
 
 ### Merge with original dataset and estimate amyloid time for the rest of scans between 0.6 and 1.21###
-data_SUVR_int <- subset(dataset,  between(SUVR_compositeRef, 0.62, 1.11))
+data_SUVR_int <- subset(dataset,  between(SUVR_compositeRef, SUVR_MIN, SUVR_MAX))
 
 data_SUVR_int  <- data_SUVR_int  %>%
 rename(SUVR = SUVR_compositeRef)
