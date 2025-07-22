@@ -75,14 +75,14 @@ fit_slope_gam <- gam(slope ~ s(SUVR_midpoint, bs = "cr"), data = dataset_fu_uq)
 summary(fit_slope_gam)
 plot(fit_slope_gam)
 #plot
-ggplot(dataset_fu_uq , aes(x=SUVR_midpoint, y=slopes)) + 
+ggplot(dataset_fu_uq , aes(x=SUVR_midpoint, y=slope)) + 
   geom_point(aes(color= APOE_binary))+ scale_color_manual(values=c("darkblue", "forestgreen")) +
   geom_smooth(method="gam") + theme_classic()
 # Variance check
 dataset_fu_uq <- dataset_fu_uq[order(dataset_fu_uq$SUVR_midpoint), ]
 
 predictions <- predict(fit_SUVRrate, newdata = dataset_fu_uq, se.fit = TRUE)
-dataset_fu_uq$variance <- predictions$se.fit^2
+variance <- predictions$se.fit^2
 mean_variance <- mean(variance, na.rm = TRUE)
 sd_variance <- sd(variance, na.rm = TRUE)
 
