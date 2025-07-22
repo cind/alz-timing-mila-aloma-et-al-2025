@@ -19,6 +19,27 @@ dataset <- read_csv(data_path)
 # Ensure date formatting
 dataset$EXAMDATE <- as.Date(dataset$EXAMDATE, format = "%m/%d/%y")
 
+# Calculate conversion age in PET converters (used later for control checks and validation)
+dataset  <- dataset %>%
+  arrange(RID,EXAMDATE) %>%
+  group_by(RID) %>% 
+  mutate(Previous_Amyloidstatus_078 = lag(binary_scan078))
+conversion_078 <- dataset %>%
+  filter(Previous_Amyloidstatus_078  == "Negative", binary_scan078 == "Positive") %>%
+  group_by(RID) %>% distinct(RID)
+converters078_subset <- dataset %>%
+  semi_join(conversion_078, by = "RID")
+midpoint_ages078 <- converters078_subset %>%
+  group_by(RID) %>%
+  summarize(
+    Last_0_Age078 = last(Age[binary_scan078 == "Negative"]),  # Age at last 0
+    First_1_Age078 = first(Age[binary_scan078 == "Positive"]),  # Age at first 1
+    Midpoint_Age1 = (Last_0_Age078 + First_1_Age078) / 2  # Midpoint age as average of ages at last 0 and first 1
+  )
+
+dataset <- merge(dataset, midpoint_ages078, by = "RID", all.x = TRUE)
+dataset$Amy_time_conv1 <- (dataset$Age - dataset$Midpoint_Age1)
+
 # Filter participants with follow-up
 dataset_fu <- dataset %>% 
   group_by(RID) %>% 
@@ -127,30 +148,6 @@ subset_pos <- data_SUVR_int %>% filter(SUVR > SUVR_POSITIVE_THRESHOLD) %>%
 
 ########################################################################################
 # Control checks
-# PET converters identification
-dataset  <- dataset %>%
-  arrange(RID,EXAMDATE) %>%
-  group_by(RID) %>% 
-  mutate(Previous_Amyloidstatus_078 = lag(binary_scan078))
-
-conversion_078 <- dataset %>%
-  filter(Previous_Amyloidstatus_078  == "Negative", binary_scan078 == "Positive") %>%
-  group_by(RID) %>% distinct(RID)
-
-converters078_subset <- dataset %>%
-  semi_join(conversion_078, by = "RID")
-
-midpoint_ages078 <- converters078_subset %>%
-  group_by(RID) %>%
-  summarize(
-    Last_0_Age078 = last(Age[binary_scan078 == "Negative"]),  # Age at last 0
-    First_1_Age078 = first(Age[binary_scan078 == "Positive"]),  # Age at first 1
-    Midpoint_Age1 = (Last_0_Age078 + First_1_Age078) / 2  # Midpoint age as average of ages at last 0 and first 1
-  )
-
-dataset <- merge(dataset, midpoint_ages078, by = "RID", all.x = TRUE)
-dataset$Amy_time_conv078 <- (dataset$Age - dataset$Midpoint_Age1)
-
 
 #estimated vs actual time in converters
 
