@@ -64,7 +64,7 @@ slopes_df <- coef(fit_SUVRrate) %>%
 dataset_fu <- left_join(dataset_fu, slopes_df, by = "RID")
 
 # Calculate SUVR midpoint
-baseline_suvr <- dataset_fu %>% group_by(RID) %>% summarise(Baseline_SUVR = first(SUVR_compositeRef))
+baseline_suvr <- dataset_fu %>% arrange(RID, EXAMDATE) %>% group_by(RID) %>% summarise(Baseline_SUVR = first(SUVR_compositeRef))
 dataset_fu <- left_join(dataset_fu, baseline_suvr, by = "RID") %>%
   mutate(SUVR_midpoint = Baseline_SUVR + (total_fu_time / 2) * slope)
 
