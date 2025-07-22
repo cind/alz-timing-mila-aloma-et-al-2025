@@ -146,6 +146,11 @@ subset_pos <- data_SUVR_int %>% filter(SUVR > SUVR_POSITIVE_THRESHOLD) %>%
   group_by(RID) %>%
   mutate(Amyloid_age_mean = mean(Amyloid_age, na.rm = TRUE))
 
+amyloid_ages <- subset_pos %>%
+  distinct(RID, Amyloid_age_mean)
+dataset <- left_join(dataset, amyloid_ages, by = "RID")
+dataset <- left_join(dataset, data_SUVR_int %>% select(RID, EXAMDATE, Amyloid_time), 
+                     by = c("RID", "EXAMDATE"))
 ########################################################################################
 # Control checks
 
