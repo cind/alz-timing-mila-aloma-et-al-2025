@@ -113,7 +113,7 @@ SUVR_midpoint$Amyloid_TIME_INT_i  <- 0.0001*SUVR_midpoint$recip_rate_i
 SUVR_midpoint$TimeSum_i <- cumsum(SUVR_midpoint$Amyloid_TIME_INT_i) ###cumulative sum of time###
 SUVR_midpoint$Amyloid_time <- SUVR_midpoint$TimeSum_i - SUVR_midpoint$Time[SUVR_midpoint$SUVR_midpoint == SUVR_POSITIVE_THRESHOLD] # Calculate the time difference from the target SUVR for each observation
 
-### Merge with original dataset and estimate amyloid time for the rest of scans between 0.6 and 1.21###
+# Merge with original dataset and estimate amyloid time for the rest of scans between 0.6 and 1.21
 data_SUVR_int <- subset(dataset,  between(SUVR_compositeRef, SUVR_MIN, SUVR_MAX))
 
 data_SUVR_int  <- data_SUVR_int  %>%
@@ -125,7 +125,7 @@ seq_dataset <- as.data.frame(SUVR_midpoint)
 library(data.table)
 setDT(data_SUVR_int)
 setDT(seq_dataset )
-### Define a function to find the nearest value in df2 for each value in df1###
+# Define a function to find the nearest value 
 find_nearest <- function(x, y) {
   idx <- findInterval(x, y, all.inside = TRUE)
   y[ifelse(idx == 0, 1, ifelse(idx == length(y), length(y), idx))]
