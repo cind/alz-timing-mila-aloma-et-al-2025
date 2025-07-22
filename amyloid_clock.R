@@ -72,8 +72,8 @@ dataset_fu_uq <- dataset_fu %>% distinct(RID, .keep_all = TRUE)
 
 # GAM of slope vs SUVR midpoint
 fit_slope_gam <- gam(slope ~ s(SUVR_midpoint, bs = "cr"), data = dataset_fu_uq)
-summary(fit_SUVRrate)
-plot(fit_SUVRrate)
+summary(fit_slope_gam)
+plot(fit_slope_gam)
 #plot
 ggplot(dataset_fu_uq , aes(x=SUVR_midpoint, y=slopes)) + 
   geom_point(aes(color= APOE_binary))+ scale_color_manual(values=c("darkblue", "forestgreen")) +
