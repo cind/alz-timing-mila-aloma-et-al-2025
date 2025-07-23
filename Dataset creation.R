@@ -1,7 +1,6 @@
 ##DATASETS CREATION##
 
-
-#######AMYLOID PET#####
+####### AMYLOID PET dataset #####
 final_dataset_fbp <- subset(final_dataset_all, Tracer=="FBP") 
 final_dataset_fbp <- merge(x=final_dataset_fbp, ages_dataset[, c("RID", "Amyloid_age_mean", "Tau_age_mean", "Tau_TP_age_mean","est_conversion_age_amy", "est_conversion_age_tau")], by=c("RID"), all.x = T)
 
@@ -109,7 +108,9 @@ write.csv(final_dataset_fbp, "amyloid_dataset.csv")
 #get centiloid values for FBP SUVR (composite ref region)
 final_dataset_fbp$Centiloids_fbp_comp <- 300.66*final_dataset_fbp$SUVR_compositeRef - 208.84
 #equation [18F]FBP: CLcomposite =300.66 × SUVR_compositeRef − 208.84
-#######TAU PET#####
+
+
+####### TAU PET dataset #####
 tau_dataset <- read_csv("tau_dataset2107.csv")
 tau_dataset <- merge(x=tau_dataset, estimated_ages[, c("RID", "Amyloid_age_mean", "Tau_age_mean","Tau_TP_age_mean", "est_conversion_age_amy", "est_conversion_age_tau")], by=c("RID"), all.x = T)
 tau_dataset <- merge(x=tau_dataset, estimated_ages[, c("RID", "Tau_TP_age_mean")], by=c("RID"), all.x = T)
@@ -198,9 +199,10 @@ tau_dataset <- merge(tau_dataset, closest_match_smallest,
 #### remove outliers- mesialtemporal and temporoparietal smaller than 4 !
 tau_dataset <- subset(tau_dataset, MesialTemporal< 4 & TemporoParietal<4)
 write.csv(tau_dataset, "tau_dataset.csv")
-#######CSF PTAU/AB#####
+
+####### CSF PTAU/AB dataset #####
 csf_dataset <- read_csv("UPENNBIOMK_ROCHE_ELECSYS_02Apr2024.csv")
-setwd("/Users/martamilaaloma/Documents/Datasets/ADNI")
+
 PTDEMO <- fread("PTDEMOG.csv")
 PTDEMO_unique <- PTDEMO[!duplicated(RID), .(RID, PTGENDER, PTDOBMM, PTDOBYY, PTEDUCAT)]
 csf_dataset <- merge(csf_dataset, PTDEMO_unique, by = "RID", all.x = TRUE)
@@ -263,8 +265,8 @@ MRI_dataset$years_symp_onset <- MRI_dataset$Age - MRI_dataset$est_conversion_age
 
 MRI_dataset <- merge(x=MRI_dataset, ref_group_uniq, by=c("RID"), all.x = T)
 write.csv(MRI_dataset, "MRI_dataset.csv")
-#######CDR SB#####
-setwd("/Users/martamilaaloma/Documents/Datasets/ADNI")
+
+####### CDR dataset #####
 CDR_dataset <- read_csv("CDR_22May2024.csv")
 
 CDR_dataset <- merge(CDR_dataset, PTDEMO_unique, by = "RID", all.x = TRUE)
@@ -279,7 +281,6 @@ CDR_dataset <- CDR_dataset %>%
   mutate(APOE_binary  = factor(ifelse(APOE4 == 0, "no carrier", "carrier")))
 
 #add dx
-setwd("/Users/martamilaaloma/Documents/Datasets/ADNI")
 DX_dataset <- read_csv("DXSUM_PDXCONV_21May2024.csv")
 setDT(CDR_dataset)
 setDT(DX_dataset)
@@ -299,7 +300,6 @@ CDR_dataset <- merge(CDR_dataset, closest_match_smallest,
                      by = c("RID", "VISDATE"), 
                      all.x = TRUE)
 #add mmse
-setwd("/Users/martamilaaloma/Documents/Datasets/ADNI")
 MMSE_dataset <- read_csv("MMSE_22Aug2024.csv")
 setDT(CDR_dataset)
 setDT(MMSE_dataset)
@@ -330,14 +330,14 @@ CDR_dataset <- merge(x=CDR_dataset, ref_group_uniq, by=c("RID"), all.x = T)
 write.csv(CDR_dataset, "CDR_dataset.csv")
 
 #######PLASMA DATASET#####
-setwd("/Users/martamilaaloma/Documents/Datasets/ADNI")
+
 longitudinal_dataset_2024_04_15 <- read.csv("dataset.csv")
 longitudinal_dataset_2024_04_15$SCANDATE_AMY <- as.Date(longitudinal_dataset_2024_04_15$SCANDATE_AMY, format = "%m/%d/%y")
 longitudinal_dataset_2024_04_15$SCANDATE_TAU <- as.Date(longitudinal_dataset_2024_04_15$SCANDATE_TAU, format = "%m/%d/%y")
 longitudinal_dataset_2024_04_15$EXAMDATE <- as.Date(longitudinal_dataset_2024_04_15$EXAMDATE, format = "%m/%d/%y")
 
 #add Amyloid PET and clock variables #
-setwd("/Users/martamilaaloma/Documents/Datasets/ADNI/FNIH project datasets")
+
 final_dataset_all <- read_csv("final_dataset_all_0207.csv")
 final_dataset_all <- final_dataset_all %>% rename(SCANDATE_AMY = EXAMDATE)
 final_dataset_all$SCANDATE_AMY <- as.Date(final_dataset_all$SCANDATE_AMY, format = "%m/%d/%y")
