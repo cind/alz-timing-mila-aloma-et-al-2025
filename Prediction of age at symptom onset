@@ -1,0 +1,172 @@
+# R/EYO_main.R
+
+#====================#
+#  Prediction of age symptom onset
+#====================#
+
+########## Identify converters #############################
+# Create CDR_DX groups#
+CDR_DX_demog$CDGLOBAL <-  factor(CDR_DX_demog$CDGLOBAL, levels = c(0,0.5,1.0,2.0,3.0))
+CDR_DX_demog$DIAGNOSIS <- factor(CDR_DX_demog$DIAGNOSIS, levels = c(1,2,3))
+
+CDR_dataset<- CDR_dataset%>%
+  mutate(CDR_DX_Group = case_when(
+    CDGLOBAL=="0" & DIAGNOSIS=="1" ~ "CN_CDR0"    ,
+    CDGLOBAL!="0" & DIAGNOSIS!="1"~ "CI_CDRgt0",
+    TRUE ~ NA_character_  
+  ))
+CDR_dataset$CDR_DX_Group <-  as.factor(CDR_dataset $CDR_DX_Group)
+
+# Identify and exclude those categorized as non-AD- MCI or non-AD- Dementia 
+ids_to_exclude_MCI <- CDR_dataset%>%
+  filter((DIAGNOSIS==2 & DXMDUE!=1) | (DIAGNOSIS == 2 & is.na(DXMDUE))) %>%
+  distinct(RID)
+ids_to_exclude_D <- CDR_dataset%>%
+  filter((DIAGNOSIS==3 & DXDDUE!=1) | (DIAGNOSIS == 3 & is.na(DXDDUE))) %>% 
+  distinct(RID)
+CDR_cogclean  <- CDR_dataset %>% 
+  filter(!(RID %in% ids_to_exclude_MCI$RID)) %>% 
+  filter(!(RID %in% ids_to_exclude_D$RID))
+
+# Identify those that converted and reverse converted#
+
+CDR_cogclean <- CDR_cogclean %>%
+  dplyr::group_by(RID) %>%
+  dplyr::arrange(EXAMDATE) %>%
+  dplyr::mutate(
+    CDR_DX_Group_bl = CDR_DX_Group[1L],
+    CDR_DX_conversion = CDR_DX_Group== "CI_CDRgt0" & lag(CDR_DX_Group) == "CN_CDR0",    CDR_DX_reverse_conversion = CDR_DX_Group== "CN_CDR0" & lag(CDR_DX_Group)== "CI_CDRgt0",
+    converter = any(CDR_DX_conversion),
+    reverse_converter = any(CDR_DX_reverse_conversion)
+  ) %>%
+  tidyr::fill(c(converter,reverse_converter),.direction = "updown")
+
+converters <- subset(CDR_cogclean, converter==TRUE) %>%
+ arrange(RID, EXAMDATE)
+
+# Exclude converters that were CI at baseline 
+ID_to_exclude_CIbl <- converters %>%
+  filter(CDR_DX_Group_bl=="CI_CDRgt0")%>%
+  pull(RID)
+converters<- converters %>%
+  filter(!RID %in% ID_to_exclude_CIbl)
+# identify last observation with CDR of 0 before converting #
+df_lastCDR0CN <- converters %>%
+  arrange(RID,EXAMDATE) %>%
+  group_by(RID) %>% 
+   mutate(next_group = lead(CDR_DX_Group)) %>%
+  summarize(last_cdr0_date = first(EXAMDATE[CDR_DX_Group == "CN_CDR0" & next_group == "CI_CDRgt0"]), .groups = 'drop')
+converters <- converters %>%
+  left_join(df_lastCDR0CN %>% select(RID, last_cdr0_date), by = "RID")
+
+# identify first observation with CDR >0
+df_firstCDRgt0CI <- converters %>%
+  arrange(RID,EXAMDATE) %>%
+  group_by(RID) %>% 
+  summarise(firstCDRgt0CI_date = first(EXAMDATE[CDR_DX_Group=="CI_CDRgt0"]))
+converters <- converters %>%
+  left_join(df_firstCDRgt0CI %>% select(RID, firstCDRgt0CI_date), by = "RID")
+
+#calculate midpoint age between last CDR0/CN and first CDR>0/CI
+age_beforeconverting <- converters %>% 
+  group_by(RID) %>% 
+  summarise(last_CDR0CN_age = (AGE_CDR[EXAMDATE==last_cdr0_date]))
+converters <- converters %>%
+  left_join(age_beforeconverting %>% select(RID, last_CDR0CN_age), by = "RID")
+
+age_afterconverting <- converters %>% 
+  group_by(RID) %>% 
+  summarise(first_CDRgt0_age = (AGE_CDR[EXAMDATE==firstCDRgt0CI_date]))
+
+converters <- converters %>%
+  left_join(age_afterconverting %>% select(RID, first_CDRgt0_age), by = "RID")
+
+converters$conversion_midpoint_age <- (converters$first_CDRgt0_age + converters$last_CDR0CN_age)/2
+
+#Merge with Ab and tau PET dataset
+converters$ID <- NULL
+converters <- converters %>%
+  rename(ID=RID)
+conv_unique <- converters %>%
+  distinct(ID, .keep_all = TRUE)
+
+final_dataset_fbp <- read.csv("final_dataset_fbp.csv")  #Merge with Ab PET dataset
+final_dataset_fbp <- merge(final_dataset_fbp, conv_unique[c("ID", "conversion_midpoint_age", "converter", "reverse_converter","firstCDRgt0CI_date", "first_CDRgt0_age","last_cdr0_date", "last_CDR0CN_age")], by=c("ID"), all.x = T)
+tau_dataset <- read.csv(“tau_dataset.csv") #Merge with tau PET dataset
+tau_dataset <- merge(tau_dataset, conv_unique[c("ID", "conversion_midpoint_age", "converter", "reverse_converter","firstCDRgt0CI_date", "first_CDRgt0_age","last_cdr0_date", "last_CDR0CN_age")], by=c("ID"), all.x = T) 
+
+########## Prediction of symptom onset age #############################
+
+# Prediction of age symptom onset using amyloid age
+##Ensure date format
+final_dataset_fbp$firstCDRgt0CI_date <- as.Date(final_dataset_fbp $firstCDRgt0CI_date, format = "%m/%d/%y")
+final_dataset_fbp$last_cdr0_date <- as.Date(final_dataset_fbp $last_cdr0_date, format = "%m/%d/%y")
+## Exclude converters with negative PET at time of conversion or later
+converters_subset <- subset(final_dataset_fbp, converter==TRUE)
+ids_with_negative_scan_atconv <- converters_subset %>%
+  filter(binary_scan1 == "Negative" & EXAMDATE >= firstCDRgt0CI_date) %>%
+  pull(RID)
+
+dataset_conv <- converters_subset %>%
+  filter(!RID %in% ids_with_negative_scan_atconv )
+
+dataset_conv_uq <- dataset_conv%>%
+  distinct(RID, .keep_all = TRUE)
+
+ggplot(dataset_conv_uq, aes(x=Amyloid_age_mean, y=conversion_age)) + geom_point()  +   geom_smooth(method="lm") 
+cor.test(dataset_conv_uq$Amyloid_age_mean, dataset_conv_uq$conversion_age, method = "spearman") 
+EYO_model1<- lm(conversion_age ~ Amyloid_age_mean ,  data=dataset_conv_uq)
+summary(EYO_model1)
+
+## Predict estimated conversion age for the rest of participants with at least 1 positive scan (those that have amyloid age calculated)
+final_dataset_fbp_uq <- final_dataset_fbp %>%
+  distinct(RID, .keep_all = TRUE)
+dataset_uq$est_conversion_age_amy <- predict(EYO_model1, newdata = dataset_uq, type="response")
+final_dataset_fbp <- final_dataset_fbp %>%
+  left_join(dataset_uq %>% select(RID, est_conversion_age_amy), by = "RID")
+dataset_conv_uq <- dataset_conv_uq %>%
+  left_join(dataset_uq %>% select(RID, est_conversion_age_amy), by = "RID")
+
+cor.test(dataset_conv_uq$est_conversion_age_amy, dataset_conv_uq$conversion_age)
+ggplot(dataset_uq, aes(x=conversion_age, y=est_conversion_age_amy)) + geom_point()  +   geom_smooth(method="lm")
+model_check4 <- lm(est_conversion_age_amy ~ conversion_age, data = dataset_conv_uq)
+summary(model_check4)
+
+# Prediction of age at symptom onset using tau age
+tau_dataset$firstCDRgt0CI_date <- as.Date(tau_dataset$firstCDRgt0CI_date, format = "%m/%d/%y")
+tau_dataset$last_cdr0_date <- as.Date(tau_dataset$last_cdr0_date, format = "%m/%d/%y")
+## Exclude converters with negative PET at time of conversion or later
+converters_subset <- subset(tau_dataset, converter==TRUE)
+ids_with_negative_scan_atconv <- converters_subset %>%
+  filter(tau_MesTemp_binary == "Negative" & SCANDATE >= firstCDRgt0CI_date) %>%
+  pull(RID)
+
+dataset_conv <- converters_subset %>%
+  filter(!RID %in% ids_with_negative_scan_atconv )
+
+dataset_conv_uq <- dataset_conv%>%
+  distinct(RID, .keep_all = TRUE)
+
+ggplot(dataset_conv_uq, aes(x=Tau_age_mean, y=conversion_age)) + geom_point()  +   geom_smooth(method="lm") 
+cor.test(dataset_conv_uq$Tau_age_mean, dataset_conv_uq$conversion_age, method = "spearman") 
+EYO_model2 <- lm(conversion_age ~ Tau_age_mean ,  data=dataset_conv_uq)
+summary(EYO_model2)
+
+## Predict estimated conversion age for the rest of participants with at least 1 positive scan (those that have tau age calculated)
+tau_dataset_uq <- tau_dataset %>%
+  distinct(RID, .keep_all = TRUE)
+tau_dataset_uq$est_conversion_age_tau<- predict(EYO_model2, newdata = tau_dataset_uq, type="response")
+tau_dataset <- tau_dataset %>%
+  left_join(tau_dataset_uq %>% select(RID, est_conversion_age_tau), by = "RID")
+dataset_conv_uq <- dataset_conv_uq %>%
+  left_join(tau_dataset_uq %>% select(RID, est_conversion_age_tau), by = "RID")
+
+cor.test(dataset_conv_uq$est_conversion_age_tau, dataset_conv_uq$conversion_age)
+ggplot(tau_dataset_uq, aes(x=conversion_age, y=est_conversion_age_tau)) + geom_point()  +   geom_smooth(method="lm")
+model_check4 <- lm(est_conversion_age_tau~ conversion_age, data = dataset_conv_uq)
+summary(model_check4)
+
+ages_dataset <- final_dataset_fbp_uq %>%
+  select(RID, Amyloid_age_mean, est_conversion_age_amy) %>%
+  full_join(tau_dataset_uq %>% select(RID, Tau_age_mean, est_conversion_age_tau), by = "RID")
+write_csv(ages_dataset, "ages_dataset.csv")
