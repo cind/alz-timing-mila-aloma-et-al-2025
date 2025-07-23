@@ -154,8 +154,8 @@ subset_taupos <- data_SUVR_int %>%
 
 tau_ages <- subset_taupos %>%
   distinct(RID, Tau_age_mean)
-dataset <- left_join(dataset, tau_ages, by = "RID")
-dataset <- left_join(dataset, data_SUVR_int %>% select(RID, SCANDATE, Tau_time), 
+tau_dataset <- left_join(tau_dataset, tau_ages, by = "RID")
+tau_dataset <- left_join(tau_dataset, data_SUVR_int %>% select(RID, SCANDATE, Tau_time), 
                      by = c("RID", "SCANDATE"))
 ########################################################################################
 # Control checks
