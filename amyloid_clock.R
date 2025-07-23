@@ -14,7 +14,7 @@ SUVR_MAX <- 1.11
 SUVR_POSITIVE_THRESHOLD <- 0.78005
 
 # Load dataset
-data_path <- here("data", "final_dataset_fbp0509.csv")
+data_path <- here("data", "final_dataset_fbp.csv")
 dataset <- read_csv(data_path)
 # Ensure date formatting
 dataset$EXAMDATE <- as.Date(dataset$EXAMDATE, format = "%m/%d/%y")
