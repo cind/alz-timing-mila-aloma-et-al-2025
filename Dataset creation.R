@@ -1,5 +1,12 @@
 ##DATASETS CREATION##
 
+# Load required packages
+library(dplyr)
+library(data.table)
+library(lubridate)
+library(readr)
+library(tibble)
+
 ####### AMYLOID PET dataset #####
 final_dataset_fbp <- subset(final_dataset_all, Tracer=="FBP") 
 final_dataset_fbp <- merge(x=final_dataset_fbp, ages_dataset[, c("RID", "Amyloid_age_mean", "Tau_age_mean", "Tau_TP_age_mean","est_conversion_age_amy", "est_conversion_age_tau")], by=c("RID"), all.x = T)
