@@ -1,18 +1,8 @@
 ##DESCRIPTIVE TABLES##
+
 install.packages("tableone")
 library(tableone)
-#######Descriptives table AMYLOID AND TAU LONG DATASETS#########
 
-
-mean(data_suvr_interval$Age)
-sd(data_suvr_interval$Age)
-table(data_suvr_interval$Race)
-#tau dataset
-tau_dataset_bl  <- tau_long_subset %>%
-  distinct(RID, .keep_all = TRUE)
-
-mean(data_tausuvr_interval$Age)
-table(data_tausuvr_interval$PTRACCAT)
 #########Descriptives table non plasma cohorts#########
 
 CDR_dataset <- CDR_dataset %>%
