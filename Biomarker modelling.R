@@ -30,8 +30,9 @@ final_dataset_plasma <- final_dataset_plasma %>%
     TRUE ~ NA_character_  
   ))
 
-## Functions for derivatives of GAM(M) models ##
 ################################################
+## Functions for derivatives of GAM(M) models ##
+
 Deriv <- function(mod, n = 200, eps = 1e-7, newdata, term) {
   if(inherits(mod, "gamm"))
     mod <- mod$gam
@@ -156,7 +157,11 @@ confint.Deriv <- function(object, term, alpha = 0.05, ...) {
   res$alpha = alpha
   res
 }
+
+################################################
+                   
 # Calculation of mean and CI of biomarker values in the Reference group 
+                   
 ###plasma biomarkers###
 ref_group_subset <- subset(final_dataset_plasma , Ref_group==1)
 
@@ -264,7 +269,7 @@ for (dataset_name in names(datasets)) {
   # Update the global variable directly with the modified dataset
   assign(dataset_name, dataset)
 }
-
+################################################
 # =======GET ABNORMALITY TIMES VS REF GROUP==========
 
 
@@ -733,6 +738,7 @@ write.csv(results_dfref2, file = "bootstrap_results_refinc1.csv", row.names = FA
 # Print the results data frame
 print(results_df)
 
+ ################################################
 # =======IDENTIFY TIME PERIODS WITH SIGNIFICANT RATE OF CHANGE ==========
 
 ##---- plasma biomarkers that increase ----
@@ -1020,7 +1026,7 @@ print(final_derivative_results)
 # Save the results to a CSV file
 write.csv(final_derivative_results, file = "derivatives_biomarkers_all_times_rangesref_decr2_new.csv", row.names = FALSE)
 
-
+################################################
 # =======TEST EFFECTS OF AGE, SEX, APOE in biomarkers in ref group at bl and correct values==========
 
 ##---- Test effect of covariates in the ref group ----
@@ -1306,6 +1312,7 @@ for (dataset_name in names(datasets)) {
   assign(dataset_name, dataset)
 }
 
+################################################
 ##----Tipping point for age adjusted plasma biomarkers (increasing)----
 biomarkers <- c( "Fuji_plasma_ptau217_out_adj",  "AlzPath_plasma_ptau217_out_adj", "Janssen_plasma_ptau217_out_adj", 
                  "QX_plasma_ptau181_out_adj","Roche_plasma_ptau181_adj",
@@ -1706,7 +1713,7 @@ for (biomarker in plasma_biomarkers) {
 final_derivative_results <- do.call(rbind, derivative_results)
 write.csv(final_derivative_results, file = "derivatives_ref_adj.csv", row.names = FALSE)
 
-
+################################################
 ########### sensitivity analyses with all plasma data available subsample n=331 #################
 
 qx_subset <- final_dataset_plasma  %>%
