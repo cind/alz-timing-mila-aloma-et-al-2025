@@ -1,5 +1,13 @@
+# R/trajectory_plots.R
 
-setwd("/Users/martamilaaloma/Documents/Datasets/ADNI/FNIH project datasets/last")
+#====================#
+# Biomarker trajectories plots
+#====================#
+
+# Load required libraries
+library(tidyverse)
+library(cowplot)
+
 
 final_dataset_plasma  <- read_csv("dataset_plasma.csv")
 final_dataset_plasma$EXAMDATE <- as.Date(final_dataset_plasma$EXAMDATE, format = "%m/%d/%y")
