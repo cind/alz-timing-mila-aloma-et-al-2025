@@ -1,12 +1,12 @@
 
-### Biomarker trajectories modelling FNIH paper ###
+# Biomarker trajectories modelling
 
-final_dataset_plasma <- read.csv("/Users/martamilaaloma/Documents/Datasets/ADNI/FNIH project datasets/last/dataset_plasma.csv")
-final_dataset_fbp <- read.csv("/Users/martamilaaloma/Documents/Datasets/ADNI/FNIH project datasets/last/amyloid_dataset.csv")
-tau_dataset <- read.csv("/Users/martamilaaloma/Documents/Datasets/ADNI/FNIH project datasets/last/tau_dataset.csv")
-csf_dataset <- read.csv("/Users/martamilaaloma/Documents/Datasets/ADNI/FNIH project datasets/last/csf_dataset.csv")
-CDR_dataset <- read.csv("/Users/martamilaaloma/Documents/Datasets/ADNI/FNIH project datasets/last/CDR_dataset.csv")
-MRI_dataset <- read.csv("/Users/martamilaaloma/Documents/Datasets/ADNI/FNIH project datasets/last/mri_dataset.csv")
+final_dataset_plasma <- read.csv("dataset_plasma.csv")
+final_dataset_fbp <- read.csv("amyloid_dataset.csv")
+tau_dataset <- read.csv("tau_dataset.csv")
+csf_dataset <- read.csv("csf_dataset.csv")
+CDR_dataset <- read.csv("CDR_dataset.csv")
+MRI_dataset <- read.csv("mri_dataset.csv")
 
 final_dataset_plasma$Centiloids_calc <- 300.66*final_dataset_plasma$SUVR_compositeRef  - 208.84
 final_dataset_fbp$Centiloids_calc <- 300.66*final_dataset_fbp$SUVR_compositeRef - 208.84
@@ -15,7 +15,7 @@ csf_dataset$Centiloids_calc <- 300.66*csf_dataset$SUVR_compositeRef - 208.84
 CDR_dataset$Centiloids_calc <- 300.66*CDR_dataset$SUVR_compositeRef - 208.84
 MRI_dataset$Centiloids_calc <- 300.66*MRI_dataset$SUVR_compositeRef - 208.84
 
-####CDR_DX groups####
+#CDR_DX groups
 final_dataset_plasma$CDR.x <-  as.factor(final_dataset_plasma$CDR.x)
 final_dataset_plasma$DX_123 <-  as.factor(final_dataset_plasma$DX_123)
 
@@ -27,7 +27,7 @@ final_dataset_plasma <- final_dataset_plasma %>%
     TRUE ~ NA_character_  
   ))
 
-####### Calculation of mean and CI of biomarker values in the Reference group #######
+# Calculation of mean and CI of biomarker values in the Reference group 
 ###plasma biomarkers###
 ref_group_subset <- subset(final_dataset_plasma , Ref_group==1)
 
@@ -102,7 +102,7 @@ add_stats_to_dataset <- function(data, variable_name, ref_group_column = "Ref_gr
   return(data)
 }
 
-# Named list of datasets (using variables directly)
+# Named list of datasets 
 datasets <- list(
   final_dataset_fbp = final_dataset_fbp, 
   tau_dataset = tau_dataset,  
@@ -138,52 +138,6 @@ for (dataset_name in names(datasets)) {
 
 # =======GET ABNORMALITY TIMES VS REF GROUP==========
 
-get_tipping_point <- function(data, biomarker, z_value, time_variable) {
-  # Model formula with smoothing and random effect
-  formula <- as.formula(paste(biomarker, "~ s(", time_variable, ", k=3) + s(RID, bs = 're')"))
-  
-  # Fit the GAM model
-  model <- gam(formula, data = data, method = "REML")
-  
-  # Get model predictions and standard errors
-  predictions <- predict(model, newdata = data, se.fit = TRUE)
-  
-  # Create results dataframe with x (time_variable), fit (predictions), and se.fit
-  results <- data.frame(
-    x = data[[time_variable]],
-    fit = predictions$fit,
-    se.fit = predictions$se.fit
-  )
-  
-  # Sort results by the time variable (optional, for orderly inspection)
-  results <- results %>% arrange(x)
-  
-  # Calculate confidence intervals
-  results <- results %>%
-    mutate(lower_ci = fit - z_value * se.fit,
-           upper_ci = fit + z_value * se.fit)
-  
-  # Get the upper confidence interval of the observed biomarker values
-  biomarker_ci_upper <- data[[paste0(biomarker, "_ci_upper")]]
-  
-  # Step 1: Identify all non-overlapping points
-  non_overlap_points <- which(results$lower_ci > biomarker_ci_upper)
-  
-  # Step 2: Ensure continuous non-overlapping points
-  # Find the first point where the confidence intervals no longer overlap,
-  # and from which they continue to not overlap
-  if (length(non_overlap_points) > 0) {
-    for (i in seq_along(non_overlap_points)) {
-      # Check if from this point forward, all subsequent points are non-overlapping
-      if (all(non_overlap_points[i:length(non_overlap_points)] == seq(non_overlap_points[i], length.out = length(non_overlap_points) - i + 1))) {
-        return(results$x[non_overlap_points[i]])  # Return the first "persistent" non-overlapping point
-      }
-    }
-  }
-  
-  # If no continuous non-overlap point is found, return NA
-  return(NA)
-}
 
 ##---- code for Ab42/40 ----
 get_tipping_point <- function(data, biomarker, z_value, time_variable) {
@@ -262,6 +216,7 @@ results_df3 <- do.call(rbind, lapply(names(results), function(name) { # Convert 
   )
 }))
 write.csv(results_df3, file = "results_tipping_plasmaab1.csv", row.names = FALSE)
+
 ##---- code for rest of plasma biomarkers - increasing with pathology ----
 
 get_tipping_point <- function(data, biomarker, z_value, time_variable) {
@@ -311,7 +266,6 @@ run_bootstrap_for_biomarker <- function(data, biomarker, time_variable) {
   return(list(median = bootstrap_tipping_points_median, ci_lower = ci_lower, ci_upper = ci_upper))
 }
 
-# Example of how to run for different biomarkers
 biomarkers <- c("C2N_plasma_ptau217_out", "C2N_plasma_ptau217_ratio", "Fuji_plasma_ptau217_out", "AlzPath_plasma_ptau217_out", "Janssen_plasma_ptau217_out", 
                 "Roche_plasma_GFAP_out", "Roche_plasma_NfL_out", "Roche_plasma_ptau181", "QX_plasma_ptau181_out","QX_plasma_GFAP_out", "QX_plasma_NfL_out"  )  
 
@@ -651,6 +605,7 @@ write.csv(results_dfref2, file = "bootstrap_results_refinc1.csv", row.names = FA
 print(results_df)
 
 # =======IDENTIFY TIME PERIODS WITH SIGNIFICANT RATE OF CHANGE ==========
+
 ##---- plasma biomarkers that increase ----
 plasma_biomarkers <- c("C2N_plasma_ptau217_out", "C2N_plasma_ptau217_ratio", "Fuji_plasma_ptau217_out", "AlzPath_plasma_ptau217_out", "Janssen_plasma_ptau217_out", 
                        "Roche_plasma_GFAP_out", "Roche_plasma_NfL_out", "Roche_plasma_ptau181", "QX_plasma_ptau181_out","QX_plasma_GFAP_out", "QX_plasma_NfL_out")  
@@ -1275,7 +1230,7 @@ run_bootstrap_for_biomarker <- function(data, biomarker, time_variable) {
   return(list(median = bootstrap_tipping_points_median, ci_lower = ci_lower, ci_upper = ci_upper))
 }
 
-# Example of how to run for different biomarkers
+
 time_variables <- c("years_amy_onset", "years_tau_onset", "years_symp_onset")
 
 results <- list()
@@ -1378,7 +1333,6 @@ run_bootstrap_for_biomarker <- function(data, biomarker, time_variable) {
   return(list(median = bootstrap_tipping_points_median, ci_lower = ci_lower, ci_upper = ci_upper))
 }
 
-# Example of how to run for different biomarkers
 time_variables <- c("years_amy_onset", "years_tau_onset", "years_symp_onset")
 
 results <- list()
@@ -1459,7 +1413,6 @@ run_bootstrap_for_biomarker <- function(data, biomarker, time_variable) {
   return(list(median = bootstrap_tipping_points_median, ci_lower = ci_lower, ci_upper = ci_upper))
 }
 
-# Example of how to run for different biomarkers
 time_variables <- c("years_amy_onset", "years_tau_onset", "years_symp_onset")
 
 results <- list()
@@ -1798,7 +1751,7 @@ run_bootstrap_for_biomarker <- function(data, biomarker, time_variable) {
   return(list(median = bootstrap_tipping_points_median, ci_lower = ci_lower, ci_upper = ci_upper))
 }
 
-# Example of how to run for different biomarkers
+
 biomarkers <- c("C2N_plasma_ptau217_out", "C2N_plasma_ptau217_ratio", "Fuji_plasma_ptau217_out", "AlzPath_plasma_ptau217_out", "Janssen_plasma_ptau217_out", 
                 "Roche_plasma_GFAP_out", "Roche_plasma_NfL_out", "Roche_plasma_ptau181", "QX_plasma_ptau181_out","QX_plasma_GFAP_out", "QX_plasma_NfL_out" ,"PTAU_over_ABETA42","SUVR_compositeRef","MesialTemporal","TemporoParietal", "CDR_SOB" )  
 time_variables <- c("years_amy_onset", "years_tau_onset", "years_symp_onset")
