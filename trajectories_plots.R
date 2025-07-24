@@ -7,6 +7,7 @@
 # Load required libraries
 library(tidyverse)
 library(cowplot)
+library(scales)
 
 
 final_dataset_plasma  <- read_csv("dataset_plasma.csv")
@@ -518,123 +519,8 @@ final_dataset_plasma<- final_dataset_plasma %>%
   ))
 final_dataset_plasma$CDR_3 <- factor(final_dataset_plasma$CDR_3, levels = c("0", "0.5", ">=1"), labels = c("CDR = 0", "CDR = 0.5", "CDR >= 1"))
 
-plasma_biomarkers <- c( "C2N_plasma_ptau217_out", "Fuji_plasma_ptau217_out",  "AlzPath_plasma_ptau217_out", "Janssen_plasma_ptau217_out", 
-                        "C2N_plasma_ptau217_ratio", "QX_plasma_ptau181_out","Roche_plasma_ptau181",
-                        "C2N_plasma_Abeta42_Abeta40_out" ,"Fuji_plasma_Ab42_Ab40_out","Roche_plasma_Ab42_Ab40_out","QX_plasma_Ab42_Ab40_out", 
-                        "Roche_plasma_GFAP_out", "QX_plasma_GFAP_out","Roche_plasma_NfL_out","QX_plasma_NfL_out", "atrophy", "PTAU_over_ABETA42", "CDR_SOB", "MMSCORE", "SUVR_compositeRef", "MesialTemporal", "TemporoParietal")
 
-colors <- c("forestgreen", "forestgreen","forestgreen", "forestgreen", "darkgreen", "green3", "green3","blue", "blue", "blue", "blue","red", "red",  "brown", "brown", "orange2","darkgrey", "purple", "purple", "coral", "darkblue", "darkblue")
-
-
-
-
-
-segment_ranges <- list(
-  Roche_plasma_Ab42_Ab40_out = c(-7.28, 14.34),
-  C2N_plasma_Abeta42_Abeta40_out = c(-7.28, 13.72), 
-  Fuji_plasma_Ab42_Ab40_out = c(-7.28, 13.52), 
-    QX_plasma_Ab42_Ab40_out = c(-7.28, 12.91 ),
-  C2N_plasma_ptau217_out = c(-7.28, 33.3 ),
-  Fuji_plasma_ptau217_out = c(-7.28,33.3),
-  
-  Roche_plasma_ptau181 = c(-7.28, 33.3),
-  QX_plasma_ptau181_out = c(-7.28,33.3),
-  
-  AlzPath_plasma_ptau217_out = c(-7.28,33.3 ),
-  Janssen_plasma_ptau217_out = c(-7.28, 33.3 ),
-  C2N_plasma_ptau217_ratio = c(-7.28,33.3),
-  Roche_plasma_GFAP_out = c(-7.28, 20.25 ),
-  QX_plasma_GFAP_out = c(-7.28 ,15.97),
-  Roche_plasma_NfL_out = c(-7.28,13.72),
-  QX_plasma_NfL_out = c(-7.28, 13.32 ),
-  PTAU_over_ABETA42 = c(-7.28,30.7),
-  atrophy= c(-7.28, 31.2 ),
-  CDR_SOB= c(-7.28, 33.3),
-  MMSCORE= c(-7.28, 33.3),
-  MesialTemporal = c(-2.65,19.67 ),
-  TemporoParietal = c(4.84,30.5),
-  SUVR_compositeRef = c(-7.28,33.3)
-)
-
-tipping_points <-c(
-  Roche_plasma_Ab42_Ab40_out = -7.28,
-  C2N_plasma_Abeta42_Abeta40_out = -7.28, 
-  Fuji_plasma_Ab42_Ab40_out = -4.52, 
-  QX_plasma_Ab42_Ab40_out = -3.98,
-  C2N_plasma_ptau217_out = -2.17 ,
-  Fuji_plasma_ptau217_out = -1.24  ,
-  
-  Roche_plasma_ptau181 = -2.63 ,
-  QX_plasma_ptau181_out = -2.08,
-  
-  AlzPath_plasma_ptau217_out = -3.09,
-  Janssen_plasma_ptau217_out = -2.66,
-  C2N_plasma_ptau217_ratio = -3.9,
-  Roche_plasma_GFAP_out = -2.6,
-  QX_plasma_GFAP_out = -3.45,
-  Roche_plasma_NfL_out = 30.8,
-  QX_plasma_NfL_out = 30.8,
-  PTAU_over_ABETA42 = -3.54,
-  atrophy= 12.69,
-  CDR_SOB= 0.61,
-  MMSCORE= 0.81,
-  MesialTemporal = 2.53,
-  TemporoParietal = 5.67,
-  SUVR_compositeRef = -4.73
-)
-plot_list_amyloid <- list()
-
-# Loop through each y variable and create a scatter plot
-for (i in seq_along(plasma_biomarkers)) {
-  y_var <- plasma_biomarkers[i]
-  color <- colors[i]
-  
-  ref_mean <- subset_IDs_with_positive1_scans[[paste0(y_var, "_mean")]]
-  
- if (y_var %in% names(segment_ranges)) {
-   x_range <- segment_ranges[[y_var]]
-    tipping_point <- tipping_points[[y_var]]
-  # Create the scatter plot
-  plot <- ggplot(final_dataset_plasma, aes(x = Amyloid_time, y = !!sym(y_var))) +
-    geom_point(size=0.4, color=color, show.legend = F) + 
-    geom_smooth( method="gam", color=color, show.legend = F, formula = y ~ s(x, k = 3), size=0.25) +
-      geom_hline(yintercept = ref_mean, linetype = "dashed", color = "grey0", size= 0.65)+
-    geom_vline(xintercept = tipping_point, linetype = "solid", color = "grey0", size= 0.65)+
-    geom_ribbon(aes(ymin = !!sym(paste0(y_var, "_ci_lower")), ymax = !!sym(paste0(y_var, "_ci_upper"))), alpha = 0.2, fill = "black") +
-    
-    labs(x = "Amyloid time (years)", y = biomarker_labels[[y_var]]) +
-    theme_minimal() + 
-    theme(
-      axis.title.x = element_text(size = 10),  # Change x-axis label size
-      axis.title.y = element_text(size = 10))
-  
-
-  if (!is.null(x_range)){
-    full_smooth <- ggplot_build(plot)$data[[2]]
-    segment_smooth <- full_smooth %>% filter(x >= x_range[1] & x <= x_range[2])
-   
-  # Add the thicker line segment
- plot <- plot +
-  geom_line(data = segment_smooth, aes(x = x, y = y), color = color, size = 2.5)
-  }  
-  
-# Add the plot to the list
-plot_list_amyloid[[y_var]] <- plot
-}
- }
-  
-  
-blank_plot <- ggplot() + theme_void()
-row1 <- plot_grid( plot_list_amyloid[[1]],  plot_list_amyloid[[2]],  plot_list_amyloid[[3]], plot_list_amyloid[[4]], nrow = 1)
-row2 <- plot_grid( plot_list_amyloid[[5]],  plot_list_amyloid[[6]],  plot_list_amyloid[[7]], blank_plot, nrow = 1)
-row3 <- plot_grid( plot_list_amyloid[[8]],  plot_list_amyloid[[9]],  plot_list_amyloid[[10]],  plot_list_amyloid[[11]],  nrow = 1)
-row4 <- plot_grid( plot_list_amyloid[[12]], plot_list_amyloid[[13]],  plot_list_amyloid[[14]],  plot_list_amyloid[[15]], nrow = 1)
-row5 <- plot_grid( plot_list_amyloid[[16]], plot_list_amyloid[[17]],  plot_list_amyloid[[18]],  plot_list_amyloid[[19]], nrow=1)
-row6 <- plot_grid( plot_list_amyloid[[20]], plot_list_amyloid[[21]],  plot_list_amyloid[[22]],blank_plot,nrow=1)
-
-allplots_AT <- plot_grid(row1, row2, row3, row4, row5, row6,  nrow = 6)
-
-##gam amyloid modified
+##gam amyloid 
 
 
 plasma_biomarkers <- c( "C2N_plasma_ptau217_out", "Fuji_plasma_ptau217_out",  "AlzPath_plasma_ptau217_out", "Janssen_plasma_ptau217_out", 
@@ -945,150 +831,6 @@ row4 <- plot_grid(plot_list_tau[[12]],plot_list_tau[[13]], plot_list_tau[[14]], 
 
 allplots_TT <- plot_grid(row1, row2, row3, row4,  nrow = 4)
 
-##GAM for tau temporoparietal##
-segment_ranges_tau <- list(
-  Roche_plasma_Ab42_Ab40_out =  NULL,
-  C2N_plasma_Abeta42_Abeta40_out =  NULL, 
-  Fuji_plasma_Ab42_Ab40_out =  NULL, 
-  QX_plasma_Ab42_Ab40_out =  NULL,
-  C2N_plasma_ptau217_out = c( -10.2, 14.3 ),
-  Fuji_plasma_ptau217_out = c(-10.2, 14.3),
-  
-  Roche_plasma_ptau181 = c(-10.2, 14.3 ),
-  QX_plasma_ptau181_out = c(-10.2, 14.3 ),
-  
-  AlzPath_plasma_ptau217_out = c(-10.2, 14.3 ),
-  Janssen_plasma_ptau217_out = c(-10.2, 14.3),
-  C2N_plasma_ptau217_ratio = c(-10.2, 14.3),
-  Roche_plasma_GFAP_out = NULL,
-  QX_plasma_GFAP_out = c(1.7 , 14.3),
-  Roche_plasma_NfL_out = c(-10.2, 14.3),
-  QX_plasma_NfL_out = c(-10.2, 14.3)
-)
-
-tipping_points_tau <-c(
-  Roche_plasma_Ab42_Ab40_out = -5.8 ,
-  C2N_plasma_Abeta42_Abeta40_out = -5.8, 
-  Fuji_plasma_Ab42_Ab40_out = -5.8 , 
-  QX_plasma_Ab42_Ab40_out = -4.9,
-  C2N_plasma_ptau217_out = -3.8  ,
-  Fuji_plasma_ptau217_out = -3.8,
-  
-  Roche_plasma_ptau181 = -5.8 ,
-  QX_plasma_ptau181_out = -1.8 ,
-  
-  AlzPath_plasma_ptau217_out = -5.8  ,
-  Janssen_plasma_ptau217_out = -5.8  ,
-  C2N_plasma_ptau217_ratio = -5.8 ,
-  Roche_plasma_GFAP_out = -5.8  ,
-  QX_plasma_GFAP_out = -5.8  ,
-  Roche_plasma_NfL_out = -1.0 ,
-  QX_plasma_NfL_out = -0.1
-  )
-
-plot_list_tau <- list()
-
-
-
-create_segments <- function(final_dataset_plasma,years_tau_TP_onset,dep_var, CDR_3) {
-  
-  # Create segments from filtered data
-  segments <- final_dataset_plasma%>%
-    group_by(RID) %>%
-    arrange(!!sym( years_tau_TP_onset)) %>%
-    mutate(
-      years_tau_TP_onset_next = lead(!!sym( years_tau_TP_onset)),
-      plasma_bmks_next = lead(!!sym(dep_var)),
-      group_next = lead(CDR_3)
-    ) %>%
-    filter(!is.na(years_tau_TP_onset_next), !is.na(group_next)) %>%
-    ungroup()
-  
-  # Create two segments for each transition
-  segments <- segments %>%
-    mutate(
-      years_tau_TP_onset_mid = (!!sym(years_tau_TP_onset) + years_tau_TP_onset_next) / 2,
-      plasma_bmks_mid = (!!sym(dep_var) +  plasma_bmks_next) / 2
-    )
-  
-  # Create first half segments
-  first_half <- segments %>%
-    transmute(
-      years_tau_TP_onset = !!sym(years_tau_TP_onset),
-      plasma_bmks = !!sym(dep_var),
-      years_tau_TP_onset_end = years_tau_TP_onset_mid,
-      plasma_bmks_end = plasma_bmks_mid,
-      CDR_3 = CDR_3
-    )
-  
-  # Create second half segments
-  second_half <- segments %>%
-    transmute(
-      years_tau_TP_onset = years_tau_TP_onset_mid,
-      plasma_bmks = plasma_bmks_mid,
-      years_tau_TP_onset_end = years_tau_TP_onset_next,
-      plasma_bmks_end = plasma_bmks_next,
-      CDR_3 = group_next
-    )
-  
-  # Combine both halves
-  all_segments <- bind_rows(first_half, second_half)
-  return(all_segments)
-}
-
-# Loop through each y variable and create a scatter plot
-for (i in seq_along(plasma_biomarkers)) {
-  y_var <- plasma_biomarkers[i]
-  
-  
-  ref_mean <- final_dataset_plasma[[paste0(y_var, "_mean")]]
-  
-  if (y_var %in% names(segment_ranges_tau)) {
-    x_range <- segment_ranges_tau[[y_var]]
-    tipping_point <- tipping_points_tau [[y_var]]
-    # Create the segments for geom_segment
-    all_segments <- create_segments(final_dataset_plasma, "years_tau_TP_onset", y_var, "CDR_3")
-    
-    # Create the scatter plot
-    plot <- ggplot(final_dataset_plasma, aes(x = years_tau_TP_onset, y = !!sym(y_var))) +
-      geom_point(size=1, show.legend = F,  aes(color=CDR_3, shape = APOE_binary)) + 
-      geom_segment(data = all_segments, aes(x = years_tau_TP_onset, y = plasma_bmks, xend = years_tau_TP_onset_end, yend = plasma_bmks_end,color = CDR_3 ), size = 0.3, show.legend =F) +
-      geom_smooth( method="gam", color="grey1", show.legend = F, formula = y ~ s(x, k = 3), size=0.25) +
-      geom_hline(yintercept = ref_mean, linetype = "dashed", color = "grey0", size= 0.65)+
-      geom_vline(xintercept = tipping_point, linetype = "solid", color = "darkgrey", size= 0.75)+
-      geom_ribbon(aes(ymin = !!sym(paste0(y_var, "_ci_lower")), ymax = !!sym(paste0(y_var, "_ci_upper"))), alpha = 0.2, fill = "black") +
-      scale_color_manual(values = c("blue2","orange2", "brown3") ) +
-      
-      labs(x = "Estimated years from tau PET positivity", y = biomarker_labels[[y_var]]) +
-      theme_classic() + 
-      theme(
-        axis.title.x = element_text(size = 14),  # Change x-axis label size
-        axis.title.y = element_text(size = 14))
-    
-    
-    if (!is.null(x_range)){
-      full_smooth <- ggplot_build(plot)$data[[3]]
-      segment_smooth <- full_smooth %>% filter(x >= x_range[1] & x <= x_range[2])
-      
-      # Add the thicker line segment
-      plot <- plot +
-        geom_line(data = segment_smooth, aes(x = x, y = y), color = "grey1", size = 1.25)
-    }  
-    
-    # Add the plot to the list
-    plot_list_tau[[y_var]] <- plot
-  }
-}
-
-
-
-blank_plot <- ggplot() + theme_void()
-row1 <- plot_grid(plot_list_tau[[1]], plot_list_tau[[2]], plot_list_tau[[3]],plot_list_tau[[4]], nrow = 1)
-row2 <- plot_grid(plot_list_tau[[5]], plot_list_tau[[6]], plot_list_tau[[7]], blank_plot, nrow = 1)
-row3 <- plot_grid(plot_list_tau[[8]], plot_list_tau[[9]], plot_list_tau[[10]], plot_list_tau[[11]],  nrow = 1)
-row4 <- plot_grid(plot_list_tau[[12]],plot_list_tau[[13]], plot_list_tau[[14]], plot_list_tau[[15]], nrow = 1)
-
-allplots_TT <- plot_grid(row1, row2, row3, row4,  nrow = 4)
 
 ##GAM for EYO ##
 segment_ranges_eyo <- list(
@@ -1242,7 +984,6 @@ row5 <- plot_grid(plot_list_amyloid[[12]],plot_list_tau[[12]], plot_list_eyo[[12
 row6 <- plot_grid(plot_list_amyloid[[14]],plot_list_tau[[14]], plot_list_eyo[[14]],nrow=1)
 allplots_main <- plot_grid(row2, row3, row4, row5, row6,  nrow = 5)
 
-ggsave("~/Documents/FNIH_paper_Amyclockplasma/Figures paper/GAM_MAIN_median_last_presentation.pdf", plot = allplots_main , width = 15, height = 20)
 
 
 ###ARRANGE FOR supplementary FIGURE
@@ -1261,125 +1002,6 @@ row7 <- plot_grid(plot_list_amyloid[[11]],plot_list_tau[[11]], plot_list_eyo[[11
 row8 <- plot_grid(plot_list_amyloid[[13]],plot_list_tau[[13]], plot_list_eyo[[13]], nrow=1)
 row9 <- plot_grid(plot_list_amyloid[[15]],plot_list_tau[[15]], plot_list_eyo[[15]],nrow=1)
 allplots_supp2 <- plot_grid(row5, row6,row7, row8, row9,  nrow = 5)
-
-ggsave("~/Documents/FNIH_paper_Amyclockplasma/Figures paper/GAM_suppl_current2.pdf", plot = allplots_supp2 , width = 15, height = 20)
-
-##########summary plots for selected biomarerks########
-selected_biomarkers <- c( "C2N_plasma_ptau217_out",  
-                        "C2N_plasma_ptau217_ratio", "Roche_plasma_ptau181",
-                        "Roche_plasma_Ab42_Ab40_out", 
-                        "Roche_plasma_GFAP_out", "Roche_plasma_NfL_out", "atrophy", 
-                        "PTAU_over_ABETA42", "MMSCORE", "SUVR_compositeRef", 
-                        "MesialTemporal", "TemporoParietal")
-##calculate  z scores with mean and sd from ref group
-final_dataset_plasma <- final_dataset_plasma %>%
-  mutate(across(all_of(selected_biomarkers), ~ (. - get(paste0(cur_column(), "_mean"))) / get(paste0(cur_column(), "_sd")),.names = "{.col}_zscore"))
-
-##calculate  z scores with mean from ref group and sd from pos group
-sd_values <- subset_IDs_with_positive1_scans %>%
-  summarize(across(all_of(selected_biomarkers), sd, na.rm = TRUE))
-
-# Rename the columns to indicate they are standard deviations
-sd_values <- sd_values %>%
-  rename_with(~ paste0(.x, "_sdpos"), everything())
-sd_df <- final_dataset_plasma %>%
-  mutate(across(all_of(selected_biomarkers), ~ sd_values[[paste0(cur_column(), "_sdpos")]], .names = "{.col}_sdpos"))
-
-
-final_dataset_plasma <- sd_df %>%
-  mutate(across(all_of(selected_biomarkers), ~ (. - get(paste0(cur_column(), "_mean"))) / get(paste0(cur_column(), "_sdpos")),.names = "{.col}_zscore2"))
-
-
-#invert z scores
-final_dataset_plasma <- final_dataset_plasma %>%
-  mutate(
-    MMSCORE_zscore = -MMSCORE_zscore,
-    atrophy_zscore = -atrophy_zscore,
-    Roche_plasma_Ab42_Ab40_out_zscore = -Roche_plasma_Ab42_Ab40_out_zscore
-  )
-
-
-
-plot_biomarkers <-  c("C2N_plasma_ptau217_out_zscore2", "C2N_plasma_ptau217_ratio_zscore2", 
-                      "Roche_plasma_ptau181_zscore2", "Roche_plasma_Ab42_Ab40_out_zscore2", 
-                      "Roche_plasma_GFAP_out_zscore2", "Roche_plasma_NfL_out_zscore2", 
-                      "PTAU_over_ABETA42_zscore2",  "atrophy_zscore2",
-                      "MMSCORE_zscore2", "SUVR_compositeRef_zscore2", "MesialTemporal_zscore2", 
-                      "TemporoParietal_zscore2")
-
-long_dataset <- final_dataset_plasma %>%
-  select(Amyloid_time, Tau_time, EYO1_tau, all_of(plot_biomarkers)) %>%
-  pivot_longer(cols = all_of(plot_biomarkers), names_to = "Biomarker", values_to = "Z_Score")
-
-long_dataset$Biomarker <- factor(long_dataset$Biomarker, levels = plot_biomarkers)
-
-color_palette <- c("forestgreen", "darkgreen", "green", "blue",  "red","brown", "darkgrey","gold2",   "purple3", "coral", "cyan3", "black")
-
-
-linetype_mapping <- c("solid", "solid", "solid", "solid", "solid", "solid", 
-                      "dotted", "dotted", "dotted", "dotted", "dotted", "dotted")
-
-plot_amyloid <-  ggplot(long_dataset, aes(x = Amyloid_time, y = Z_Score, color = Biomarker, linetype = Biomarker)) +
-  geom_smooth(method = "gam", formula = y ~ s(x, k = 3), se = FALSE,show.legend = F) +
-  scale_color_manual(values = color_palette,  labels=c("C2N p-tau217 (pg/ml)", "C2N %p-tau217 (%)", "Roche p-tau181 (pg/ml)",
-                                                       expression(paste("Roche A",beta,"42/A",beta,"40")),   "Roche GFAP (ng/ml)",
-                                                       "Roche NfL (pg/ml)", expression(paste("CSF p-tau181/A", beta, "42")),"Cortical thickness meta-ROI", "MMSE", expression(paste("A",beta," PET SUVR")),
-                                                       "Tau PET Mesial-Temporal SUVR", "Tau PET Temporo-Parietal SUVR" )) +
-  labs(x = "Amyloid time (years)", y = "Z-Score", color = "Biomarker", linetype = "Biomarker") + ylim(-1,4.5) +
-  theme_minimal() + scale_linetype_manual(values = linetype_mapping, labels=c("C2N p-tau217 (pg/ml)", "C2N %p-tau217 (%)", "Roche p-tau181 (pg/ml)",
-                                                                       expression(paste("Roche A",beta,"42/A",beta,"40")), "Roche GFAP (ng/ml)",
-                                                                       "Roche NfL (pg/ml)", expression(paste("CSF p-tau181/A", beta, "42")),
-                                                                       "Cortical thickness meta-ROI", "MMSE", expression(paste("A",beta," PET SUVR")),
-                                                                       "Tau PET Mesial-Temporal SUVR", "Tau PET Temporo-Parietal SUVR")) +
-  theme(legend.position = "right", legend.title = element_blank())
-
-plot_tau <-  ggplot(long_dataset, aes(x = Tau_time, y = Z_Score, color = Biomarker, linetype = Biomarker)) +
-  geom_smooth(method = "gam", formula = y ~ s(x, k = 3), se = FALSE,show.legend = F) +
-  scale_color_manual(values = color_palette,  labels=c("C2N p-tau217 (pg/ml)", "C2N %p-tau217 (%)", "Roche p-tau181 (pg/ml)",
-                                                       expression(paste("Roche A",beta,"42/A",beta,"40")),   "Roche GFAP (ng/ml)",
-                                                       "Roche NfL (pg/ml)", expression(paste("CSF p-tau181/A", beta, "42")),"Cortical thickness meta-ROI", "MMSE", expression(paste("A",beta," PET SUVR")),
-                                                       "Tau PET Mesial-Temporal SUVR", "Tau PET Temporo-Parietal SUVR" )) +
-  scale_linetype_manual(values = linetype_mapping, labels=c("C2N p-tau217 (pg/ml)", "C2N %p-tau217 (%)", "Roche p-tau181 (pg/ml)",
-                                                            expression(paste("Roche A",beta,"42/A",beta,"40")), "Roche GFAP (ng/ml)",
-                                                            "Roche NfL (pg/ml)", expression(paste("CSF p-tau181/A", beta, "42")),
-                                                            "Cortical thickness meta-ROI", "MMSE", expression(paste("A",beta," PET SUVR")),
-                                                            "Tau PET Mesial-Temporal SUVR", "Tau PET Temporo-Parietal SUVR")) +
-  
-  labs(x = "Tau time (years)", y = "Z-Score", color = "Biomarker", linetype = "Biomarker") +ylim(-1,4.5) +
-  theme_minimal() + 
-  theme(legend.position = "right")
-
-plot_eyo <-  ggplot(long_dataset, aes(x = EYO1_tau, y = Z_Score, color = Biomarker, linetype= Biomarker)) +
-  geom_smooth(method = "gam", formula = y ~ s(x, k = 3), se = FALSE, show.legend = F) +
-  scale_color_manual(values = color_palette,  labels=c("C2N p-tau217 (pg/ml)", "C2N %p-tau217 (%)", "Roche p-tau181 (pg/ml)",
-                                                       expression(paste("Roche A",beta,"42/A",beta,"40")),   "Roche GFAP (ng/ml)",
-                                                       "Roche NfL (pg/ml)", expression(paste("CSF p-tau181/A", beta, "42")),"Cortical thickness meta-ROI", "MMSE", expression(paste("A",beta," PET SUVR")),
-                                                       "Tau PET Mesial-Temporal SUVR", "Tau PET Temporo-Parietal SUVR" )) +
- 
-  scale_linetype_manual(values = linetype_mapping, labels=c("C2N p-tau217 (pg/ml)", "C2N %p-tau217 (%)", "Roche p-tau181 (pg/ml)",
-                                                            expression(paste("Roche A",beta,"42/A",beta,"40")), "Roche GFAP (ng/ml)",
-                                                            "Roche NfL (pg/ml)", expression(paste("CSF p-tau181/A", beta, "42")),
-                                                            "Cortical thickness meta-ROI", "MMSE", expression(paste("A",beta," PET SUVR")),
-                                                            "Tau PET Mesial-Temporal SUVR", "Tau PET Temporo-Parietal SUVR")) +
-  
-  
-   labs(x = "EYO (years)", y = "Z-Score", color = "Biomarker", linetype = "Biomarker") + ylim(-1,4.5) +
-  theme_minimal() +
-  theme(legend.position = "right")
-
-
-allplots_summary <- plot_grid(plot_amyloid, plot_tau, plot_eyo, nrow = 1)
-
-get_legend <- function(my_plot) {
-  g <- ggplotGrob(my_plot)
-  legend <- g$grobs[which(sapply(g$grobs, function(x) x$name) == "guide-box")][[1]]
-  legend
-}
-legend <- get_legend(plot_amyloid)
-legend_col <- plot_grid(legend, blank_plot, ncol = 1, rel_heights = c(0.80, 0.20))
-final_plot <- plot_grid(allplots_summary, legend_col, ncol = 2, rel_widths = c(0.8, 0.2))
-ggsave("Summaryplots2.pdf", plot = final_plot , width = 15, height = 5)
-
 
 
 
@@ -1408,7 +1030,7 @@ biomarker_labels <- c(
   SUVR_compositeRef = expression(""^18*"F-florbetapir amyloid PET"))
 
 ##amyloid time plot##                               
-times_AT <- read.csv("~/Documents/FNIH_paper_Amyclockplasma/times_AT_last.csv")
+times_AT <- read.csv("times_AT_last.csv")
 times_AT$biomarker <- factor(times_AT$biomarker, levels = unique(times_AT$biomarker))
 
 color_palette <- c("blue", "blue","coral","blue","darkgrey", "darkgreen","red", "red","blue","forestgreen", "forestgreen", "green","forestgreen","green","darkblue","darkblue", "forestgreen", "purple3", "orange2", "brown", "brown")
@@ -1423,7 +1045,7 @@ amytime_forestplot_  <- ggplot(times_AT,
   geom_vline(xintercept = 0, linetype = "dashed", color = "black")
 
 ##tau time plot##
-times_tau <- read.csv("~/Documents/FNIH_paper_Amyclockplasma/times_tau_last.csv")
+times_tau <- read.csv("times_tau_last.csv")
 times_tau$biomarker <- factor(times_tau$biomarker, levels = unique(times_tau$biomarker))
 color_palette <- c("red", "red","blue","coral","blue","darkgrey","blue","green","purple3","green","forestgreen", "forestgreen", "darkgreen","darkblue","forestgreen","forestgreen", "blue","orange2","darkblue", "brown", "brown")
 
@@ -1436,7 +1058,7 @@ tautime_forestplot_  <- ggplot(times_tau,
   geom_vline(xintercept = 0, linetype = "dashed", color = "black") 
 
 ##EYO  plot##
-times_eyo <- read.csv("~/Documents/FNIH_paper_Amyclockplasma/times_eyo_last.csv")
+times_eyo <- read.csv("times_eyo_last.csv")
 times_eyo$biomarker <- factor(times_eyo$biomarker, levels = unique(times_eyo$biomarker))
 color_palette <- c("blue","coral","blue","darkgrey", "blue", "darkblue","darkgreen","darkblue","red","red","forestgreen", "forestgreen","forestgreen","forestgreen", "green","green","blue", "purple3",  "brown", "brown", "orange2" )
 
@@ -1449,88 +1071,15 @@ EYOtime_forestplot_  <- ggplot(times_eyo,
   geom_vline(xintercept = 0, linetype = "dashed", color = "black") 
 
 allplots_forest <- plot_grid(amytime_forestplot_, tautime_forestplot_ , EYOtime_forestplot_, nrow = 1)
-ggsave("~/Documents/FNIH_paper_Amyclockplasma/Annals_Neurology_submission/Fig4.pdf", plot = allplots_forest , width = 23, height = 8)
 
 
-##centiloids plot
-cl_AT <- read.csv("~/Documents/FNIH_paper_Amyclockplasma/Times_AT_Cent.csv")
-cl_AT$biomarker <- factor(cl_AT$biomarker, levels = unique(cl_AT$biomarker))
 
-color_palette <- c("blue", "blue","coral","blue", "darkgrey","darkgreen", "red", "red","blue", "forestgreen","forestgreen", "green", "forestgreen","green", "darkblue","darkblue", "forestgreen","purple3",  "orange2",  "brown", "brown")
-
-
-cl_forestplot_  <- ggplot(cl_AT,
-                          aes(y=biomarker, color= biomarker)) +
-  geom_point(aes(x=time),show.legend = F) +
-  geom_linerange(aes(xmin=ul, xmax=il),show.legend = FALSE) +
-  scale_y_discrete(limits = rev(levels(cl_AT$biomarker)), labels=biomarker_labels) + ggtitle("Amyloid burden") + scale_color_manual(values=color_palette) +
-  labs(y="", x="Centiloids") +  theme_base() +  theme(plot.title = element_text( size=14)) + scale_x_continuous(breaks = pretty_breaks(n = 10)) +
-  geom_vline(xintercept = 25.7, linetype = "dashed", color = "black") 
-ggsave("~/Documents/FNIH_paper_Amyclockplasma/Annals_Neurology_submission/review/forest_centiloids.pdf", plot = cl_forestplot_ , width = 7, height = 9)
-
-##centiloids model plot
-cl_AT <- read.csv("~/Documents/FNIH_paper_Amyclockplasma/Times_Cent_model.csv")
-cl_AT$biomarker <- factor(cl_AT$biomarker, levels = unique(cl_AT$biomarker))
-
-color_palette <- c("blue", "blue","coral","blue", "darkgrey","darkgreen", "red", "red","blue", "forestgreen","forestgreen", "green", "forestgreen","green", "darkblue","darkblue", "forestgreen","purple3",  "orange2",  "brown", "brown")
-
-
-cl_mod_forestplot_  <- ggplot(cl_AT,
-                          aes(y=biomarker, color= biomarker)) +
-  geom_point(aes(x=time),show.legend = F) +
-  geom_linerange(aes(xmin=ul, xmax=il),show.legend = FALSE) +
-  scale_y_discrete(limits = rev(levels(cl_AT$biomarker)), labels=biomarker_labels) + ggtitle("Amyloid burden") + 
-  labs(y="", x="Centiloids") +  theme_base() +  theme(plot.title = element_text( size=14)) + scale_x_continuous(breaks = pretty_breaks(n = 10)) +
-  geom_vline(xintercept = 25.7, linetype = "dashed", color = "black") 
-ggsave("~/Documents/FNIH_paper_Amyclockplasma/Annals_Neurology_submission/review/forest_centiloids.pdf", plot = cl_forestplot_ , width = 7, height = 9)
-
-##tau SUVR plot
-tau_suvr <- read.csv("~/Documents/FNIH_paper_Amyclockplasma/Times_tau_suvr.csv")
-tau_suvr$biomarker <- factor(tau_suvr$biomarker, levels = unique(tau_suvr$biomarker))
-
-color_palette <- c("red", "red","blue","coral","blue","darkgrey","blue","green","purple3","green","forestgreen", "forestgreen", "darkgreen","darkblue","forestgreen","forestgreen", "blue","orange2","darkblue", "brown", "brown")
-
-
-tau_forestplot_  <- ggplot(tau_suvr,
-                          aes(y=biomarker, color= biomarker)) +
-  geom_point(aes(x=time),show.legend = F) +
-  geom_linerange(aes(xmin=ul, xmax=il),show.legend = FALSE) +
-  scale_y_discrete(limits = rev(levels(tau_suvr$biomarker)), labels=biomarker_labels) + ggtitle("Tau burden") + scale_color_manual(values=color_palette) +
-  labs(y="", x=expression(""^18*"F-flortaucipir tau PET")) +  theme_base() +  theme(plot.title = element_text( size=14)) + scale_x_continuous(breaks = pretty_breaks(n = 10)) +
-  geom_vline(xintercept = 1.41, linetype = "dashed", color = "black") 
-
-ggsave("~/Documents/FNIH_paper_Amyclockplasma/Annals_Neurology_submission/review/forest_centiloids.pdf", plot = cl_forestplot_ , width = 7, height = 9)
-
-suppl_forestplots <- plot_grid(cl_forestplot_ , tau_forestplot_, nrow = 1)
-ggsave("~/Documents/FNIH_paper_Amyclockplasma/Annals_Neurology_submission/review/Suppl_forests.pdf", plot = suppl_forestplots , width = 15, height = 8)
-
-blank_plot <- ggplot() + theme_void()
-forestplots_all <- plot_grid(amytime_forestplot_, cl_forestplot_, blank_plot, tautime_forestplot_ ,tau_forestplot_, EYOtime_forestplot_,    nrow = 2)
-ggsave("~/Documents/FNIH_paper_Amyclockplasma/Annals_Neurology_submission/review/forest_all.pdf", plot = forestplots_all , width = 23, height = 16)
-
-##tau model SUVR plot
-tau_suvr <- read.csv("~/Documents/FNIH_paper_Amyclockplasma/times_tau_suvr_model.csv")
-tau_suvr$biomarker <- factor(tau_suvr$biomarker, levels = unique(tau_suvr$biomarker))
-
-color_palette <- c("red", "red","blue","coral","blue","darkgrey","blue","green","purple3","green","forestgreen", "forestgreen", "darkgreen","darkblue","forestgreen","forestgreen", "blue","orange2","darkblue", "brown", "brown")
-
-
-tau_forestplot_mod  <- ggplot(tau_suvr,
-                           aes(y=biomarker, color= biomarker)) +
-  geom_point(aes(x=time),show.legend = F) +
-  geom_linerange(aes(xmin=ul, xmax=il),show.legend = FALSE) +
-  scale_y_discrete(limits = rev(levels(tau_suvr$biomarker)), labels=biomarker_labels) + ggtitle("Tau burden") + 
-  labs(y="", x=expression(""^18*"F-flortaucipir tau PET")) +  theme_base() +  theme(plot.title = element_text( size=14)) + scale_x_continuous(breaks = pretty_breaks(n = 10)) +
-  geom_vline(xintercept = 1.41, linetype = "dashed", color = "black") 
-
-forestplots_mods <- plot_grid(cl_mod_forestplot_,tau_forestplot_mod, nrow = 1)
-
-#forest plots double axis
+#amyloid and tau forest plots with double axis including pathology burden
 library(scales)
-lookup_table <- read.csv("~/Documents/FNIH_paper_Amyclockplasma/suvr_midpoint.csv")
+lookup_table <- read.csv("suvr_midpoint.csv")
 years_to_centiloid <- approxfun(lookup_table$Amyloid_time, lookup_table$Centiloid)
 
-times_AT <- read.csv("~/Documents/FNIH_paper_Amyclockplasma/times_AT_last.csv")
+times_AT <- read.csv("times_AT_last.csv")
 times_AT$biomarker <- factor(times_AT$biomarker, levels = unique(times_AT$biomarker))
 
 color_palette <- c("blue", "blue","coral","blue","darkgrey", "darkgreen","red", "red","blue","forestgreen", "forestgreen", "green","forestgreen","green","darkblue","darkblue", "forestgreen", "purple3", "orange2", "brown", "brown")
@@ -1548,10 +1097,10 @@ amytime_forestplot_xx  <- ggplot(times_AT,
     sec.axis = sec_axis(~ years_to_centiloid(.), name = "Centiloids")
   )
 
-lookup_table_tau <- read.csv("~/Documents/FNIH_paper_Amyclockplasma/MesialTemp_midpoint.csv")
+lookup_table_tau <- read.csv("MesialTemp_midpoint.csv")
 years_to_suvr <- approxfun(lookup_table_tau$Tau_time, lookup_table_tau$MesialTemp_midpoint)
 
-times_T <- read.csv("~/Documents/FNIH_paper_Amyclockplasma/times_tau_last.csv")
+times_T <- read.csv("times_tau_last.csv")
 times_T$biomarker <- factor(times_T$biomarker, levels = unique(times_T$biomarker))
 
 color_palette <- c("red", "red","blue","coral","blue","darkgrey","blue","green","purple3","green","forestgreen", "forestgreen", "darkgreen","darkblue","forestgreen","forestgreen", "blue","orange2","darkblue", "brown", "brown")
@@ -1570,49 +1119,7 @@ tautime_forestplot_xx  <- ggplot(times_T,
   )
 
 forestplots_doublex_all <- plot_grid(amytime_forestplot_xx,tautime_forestplot_xx, EYOtime_forestplot_, nrow = 1)
-ggsave("~/Documents/FNIH_paper_Amyclockplasma/Annals_Neurology_submission/review/forests_new.pdf", plot = forestplots_doublex_all , width = 23, height = 8)
 
-#####3D plots #####
-install.packages("scatterplot3d")
-library(scatterplot3d)
-
-
-plasma_biomarkers <- c( "C2N_plasma_ptau217_out", "Fuji_plasma_ptau217_out",  "AlzPath_plasma_ptau217_out", "Janssen_plasma_ptau217_out", 
-                        "C2N_plasma_ptau217_ratio", "QX_plasma_ptau181_out","Roche_plasma_ptau181",
-                        "C2N_plasma_Abeta42_Abeta40_out" ,"Fuji_plasma_Ab42_Ab40_out","Roche_plasma_Ab42_Ab40_out","QX_plasma_Ab42_Ab40_out", 
-                        "Roche_plasma_GFAP_out", "QX_plasma_GFAP_out","Roche_plasma_NfL_out","QX_plasma_NfL_out", "atrophy", "PTAU_over_ABETA42", "CDR_SOB", "MMSCORE", "SUVR_compositeRef", "MesialTemporal", "TemporoParietal")
-
-dir.create("3D_plots", showWarnings = FALSE)
-
-color_map <- c("red", "blue")  # Red for one group, blue for the other
-labels <- c("APOE-ε4 carrier", "APOE-ε4 non-carrier")
-# Loop over each biomarker and create a 3D scatter plot
-for (i in seq_along(plasma_biomarkers)) {
-  biomarker <- plasma_biomarkers[i]  # Get the name of the biomarker
-  
-  colors <- color_map[as.factor(final_dataset_plasma$APOE_binary)]
-  
-  png(filename = sprintf("3D_plots/plot_%02d.png", i), width = 800, height = 600)
-  
-  # Create a 3D scatter plot for each biomarker
-  scatterplot3d(final_dataset_plasma$Amyloid_time, 
-                final_dataset_plasma[[biomarker]], 
-                final_dataset_plasma$Tau_time, 
-                main = biomarker,  # Set the title to the biomarker name
-                xlab = "Estimated years from amyloid onset", 
-                ylab = biomarker,  # Set y-axis label to the biomarker name
-                zlab = "Estimated years from tau onset", 
-                color = colors, pch = 19)
-  legend("topright", legend = labels, col = color_map, pch = 19)
-  dev.off()
-  }
-
-image_files <- list.files("3D_plots", pattern = "\\.png$", full.names = TRUE)
-images <- lapply(image_files, readPNG)
-plots <- lapply(images, rasterGrob)
-
-combined_plot <- plot_grid(plotlist = plots, ncol = 3)  # Adjust ncol as needed
-ggsave("combined_3D_plot_grid.pdf", plot = combined_plot, width = 6, height = 8)  # Save as PDF
 
 
 
