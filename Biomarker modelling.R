@@ -1,5 +1,8 @@
+# R/biomarker_modelling.R
 
+#====================#
 # Biomarker trajectories modelling
+#====================#
 
 final_dataset_plasma <- read.csv("dataset_plasma.csv")
 final_dataset_fbp <- read.csv("amyloid_dataset.csv")
